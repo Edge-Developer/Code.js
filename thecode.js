@@ -11,12 +11,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 // Configurable properties
 
-/*
-   The number of languages you support. Please check the README.md for more
-   information on column positions.
-*/
-var NUMBER_OF_LANGUAGES = 3;
-
 /* 
    The script expects two columns for iOS and Android identifiers, respectively,
    and a column after that with all of the string values. This is the position of
@@ -49,10 +43,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Custom Export')
       .addItem('iOS', 'exportForIos')
-      .addItem('Android', 'exportForAndroid')
-      .addSeparator()
-      .addSubMenu(ui.createMenu('Sub-menu')
-          .addItem('Second item', 'menuItem2'))
+  .addItem('Android', 'showSideBar')
       .addToUi();
 }
 
@@ -71,7 +62,19 @@ function exportForAndroid() {
       language: LANGUAGE_ANDROID
     }
   };
-  exportSheet(e);
+  return exportSheet(e);
+}
+
+function showSideBar() {
+  var html = HtmlService.createHtmlOutputFromFile('index')
+      .setTitle('Export Columns')
+      .setWidth(300);
+  SpreadsheetApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
+      .showSidebar(html);
+}
+
+function alertMaker(name){
+  SpreadsheetApp.getUi().alert(name);
 }
 
 /*
@@ -82,13 +85,14 @@ function exportSheet(e) {
   
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getActiveSheet();
+  var numberOfLanguages = sheet.getLastColumn() - 1;
   var rowsData = getRowsData_(sheet, getExportOptions(e));
 
   var strings = [];
-  for (var i = 1; i < NUMBER_OF_LANGUAGES; i++) {
+  for (var i = 1; i < numberOfLanguages; i++) {
     strings.push(makeString(rowsData, i, getExportOptions(e)));
   }
-  return displayTexts_(strings);
+  return strings;
 }
 
 function getExportOptions(e) {
@@ -132,13 +136,12 @@ function makeButton(app, parent, name, callback) {
 }
 
 function makeTextBox(app, name) { 
-  var textArea = app.createTextArea().setWidth('100%').setHeight('50px').setId(name).setName(name);
+  var textArea = app.createTextArea().setWidth('100%').setHeight('150px').setId(name).setName(name);
   return textArea;
 }
 
-function displayTexts_(texts) {
-  
-  var app = UiApp.createApplication().setTitle('Export');
+function displayTexts(texts) {
+  var app = UiApp.createApplication().setTitle('Export All');
 
   for (var i = 0; i < texts.length; i++) {
     app.add(makeTextBox(app, 'json' + i));
@@ -149,6 +152,18 @@ function displayTexts_(texts) {
   ss.show(app);
 
   return app; 
+}
+
+function displayTextsPerColumn(text,number,title) {
+   var app = UiApp.createApplication().setTitle('Export ' +title);
+   var textArea = app.createTextArea().setWidth('100%').setHeight('100%').setId('json' + number).setName('json' + number);
+   app.add(textArea);
+   app.getElementById('json' + number).setText(text); 
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet(); 
+  ss.show(app);
+  
+  return app;
 }
 
 
@@ -265,6 +280,7 @@ function makeIosString(object, textIndex, options) {
     if(identifier == "") {
       continue;
     }
+    
     
     exportString += '"' + identifier + '" = "' + text + "\";\n";
   }
